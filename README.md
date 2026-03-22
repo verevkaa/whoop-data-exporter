@@ -26,7 +26,7 @@ All nested JSON fields are flattened into individual columns with snake_case nam
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/<your-username>/whoop-data-exporter.git
+   git clone https://github.com/verevkaa/whoop-data-exporter.git
    cd whoop-data-exporter
    ```
 
