@@ -59,7 +59,7 @@ The script will:
 1. Open your browser to the WHOOP authorization page
 2. Start a temporary local server on `http://localhost:3000/callback` to capture the OAuth callback
 3. Exchange the authorization code for an access token
-4. Fetch all records from September 1, 2025 through today
+4. Automatically detect your earliest WHOOP record and fetch all data from that date through today
 5. Save each dataset as a CSV file in the current directory
 
 Progress is printed to the console as data is fetched.
@@ -69,6 +69,7 @@ Progress is printed to the console as data is fetched.
 - **OAuth 2.0 Authorization Code flow** — secure browser-based login, no password handling
 - **Automatic pagination** — fetches all records across multiple pages
 - **Rate limit handling** — exponential backoff with automatic retry on `429` and `5xx` responses
+- **Automatic start date detection** — finds your earliest logged record so no data is missed
 - **Flat CSV output** — nested JSON structures are flattened into readable column names
 
 ## API Reference

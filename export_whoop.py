@@ -29,8 +29,9 @@ TOKEN_URL = "https://api.prod.whoop.com/oauth/oauth2/token"
 API_BASE = "https://api.prod.whoop.com/developer"
 
 SCOPES = "read:recovery read:sleep read:workout read:cycles offline"
-START_DATE = "2025-09-01T00:00:00.000Z"
 END_DATE = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+# Use a date before WHOOP existed to ensure we capture all data from day one
+EARLIEST_POSSIBLE = "2015-01-01T00:00:00.000Z"
 
 MAX_RETRIES = 5
 INITIAL_BACKOFF = 1  # seconds
@@ -148,10 +149,37 @@ def api_get(session: requests.Session, endpoint: str, params: dict) -> dict:
     sys.exit(1)
 
 
-def fetch_all(session: requests.Session, endpoint: str, label: str) -> list[dict]:
+def detect_start_date(session: requests.Session) -> str:
+    """Paginate through all cycle records to find the earliest one.
+
+    The API returns records in descending order (newest first), so we
+    page through everything and take the last record's start date.
+    """
+    print("Detecting earliest data date (paginating all cycles)...")
+    oldest_start = None
+    params = {"start": EARLIEST_POSSIBLE, "end": END_DATE}
+    while True:
+        data = api_get(session, "/v2/cycle", params)
+        records = data.get("records", [])
+        if records:
+            # Last record on this page is the oldest so far
+            oldest_start = records[-1].get("start")
+        next_token = data.get("next_token")
+        if not next_token:
+            break
+        params["nextToken"] = next_token
+    if oldest_start:
+        print(f"Earliest record found: {oldest_start}")
+        return oldest_start
+    print(f"No records found, falling back to {EARLIEST_POSSIBLE}")
+    return EARLIEST_POSSIBLE
+
+
+def fetch_all(session: requests.Session, endpoint: str, label: str,
+              start_date: str) -> list[dict]:
     """Paginate through an endpoint and return all records."""
     all_records = []
-    params = {"start": START_DATE, "end": END_DATE}
+    params = {"start": start_date, "end": END_DATE}
     while True:
         data = api_get(session, endpoint, params)
         records = data.get("records", [])
@@ -207,6 +235,9 @@ def main():
     session = requests.Session()
     session.headers.update({"Authorization": f"Bearer {access_token}"})
 
+    # Detect earliest data date automatically
+    start_date = detect_start_date(session)
+
     # Fetch data
     endpoints = [
         ("/v2/activity/sleep",   "sleep",    "sleep.csv"),
@@ -217,7 +248,7 @@ def main():
 
     for endpoint, label, filename in endpoints:
         print(f"\n── {label.upper()} ──")
-        records = fetch_all(session, endpoint, label)
+        records = fetch_all(session, endpoint, label, start_date)
         save_csv(records, filename)
 
     print("\nDone! All CSV files exported.")
