@@ -1,0 +1,11 @@
+# Credentials
+*.env
+!.env.example
+
+# Exported data
+*.csv
+
+# Python
+__pycache__/
+*.pyc
+.DS_Store
